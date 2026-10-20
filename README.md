@@ -9,8 +9,9 @@
 
 ## Architecture
 - Website: `frontend/index.html`, `style.css`, `app.js`.
-- **Actual doubly linked list algorithms in C:** `backend/playlist_wasm.c`.
+- **Actual doubly circular linked list algorithms in C:** `backend/playlist_wasm.c`.
 - Compiled C WebAssembly binary: `frontend/playlist.wasm` (included; no compiler needed at Vercel build time).
+- In this **Doubly Circular Linked List**, the last node (`TAIL`) points directly to the first node (`HEAD`), and `HEAD.prev` points back to `TAIL` (no NULL pointers).
 - Browser JavaScript calls exported C functions for add, delete, play, next, previous, shuffle, traversal, and pointer inspection. Song metadata and audio playback are handled in JS; JS does **not** implement the linked list.
 - Playlist persists **per browser** using localStorage. No login, shared database, or remote server is included; this is a Vercel-hosted web application with a C/WASM DSA engine, not a multiuser full-stack backend.
 
