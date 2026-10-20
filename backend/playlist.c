@@ -36,7 +36,7 @@ static Song*find(int id){
     Song*s=head;
     do{if(s->id==id)return s;s=s->next;}while(s!=head);
     return NULL;
-}
+}   
 
 static void load(){
     FILE*f=fopen(DB,"r");

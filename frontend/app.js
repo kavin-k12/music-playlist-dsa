@@ -1,7 +1,29 @@
 const $ = id => document.getElementById(id);
 const audio = $('audio');
 const safe = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const storageKey = 'linkedbeats-playlist-v2';
+const storageKey = 'linkedbeats-playlist-v3';
+const defaultSongs = [
+  {
+    title: 'Song 1',
+    artist: 'artist1',
+    url: 'https://pnb-website-bucket.s3.us-east-2.amazonaws.com/samples/audio/mp3/sample-audio-15s-mono-64kbps.mp3'
+  },
+  {
+    title: 'Song 2',
+    artist: 'artist2',
+    url: 'https://cdn.truefilesize.com/mp3/sample-100kb.mp3'
+  },
+  {
+    title: 'Song 3',
+    artist: 'artist3',
+    url: 'https://github.com/rafaelreis-hotmart/Audio-Sample-files/raw/master/sample.mp3'
+  },
+  {
+    title: 'Song 4',
+    artist: 'artist4',
+    url: 'https://github.com/rafaelreis-hotmart/Audio-Sample-files/raw/master/sample2.mp3'
+  }
+];
 let c, songs = {}, playing = false;
 
 function toast(message) {
@@ -267,6 +289,24 @@ audio.addEventListener('ended', () => { playing = true; change(() => c.next_song
 audio.addEventListener('pause', () => { if (!audio.ended) { playing = false; $('toggleBtn').textContent = '▶'; } });
 audio.addEventListener('play', () => { playing = true; $('toggleBtn').textContent = 'Ⅱ'; });
 
+const loadDefaults = () => {
+  for (const s of defaultSongs) {
+    const id = c.add();
+    if (id < 0) break;
+    songs[id] = {id, title: s.title, artist: s.artist, url: s.url};
+  }
+  const list = ordered();
+  if (list.length > 0) c.play(list[0].id);
+  save();
+  render();
+};
+
+document.addEventListener('click', e => {
+  if (e.target && e.target.id === 'loadDefaultsBtn') {
+    loadDefaults();
+  }
+});
+
 async function init() {
   try {
     const response = await fetch('/playlist.wasm');
@@ -274,17 +314,39 @@ async function init() {
     const bytes = await response.arrayBuffer();
     const { instance } = await WebAssembly.instantiate(bytes, {});
     c = makeCircularEngine(instance.exports);
-    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    if (Array.isArray(saved.songs)) {
-      for (const s of saved.songs) {
-        if (!s || typeof s.title !== 'string' || typeof s.artist !== 'string' || typeof s.url !== 'string') continue;
-        const id = c.add();
-        if (id < 0) break;
-        songs[id] = {id, title: s.title, artist: s.artist, url: s.url};
-        if (s.id === saved.current) saved.newCurrent = id;
+
+    let initialSongs = defaultSongs;
+    let initialCurrent = null;
+
+    const savedRaw = localStorage.getItem(storageKey);
+    if (savedRaw) {
+      try {
+        const saved = JSON.parse(savedRaw);
+        if (Array.isArray(saved.songs) && saved.songs.length > 0) {
+          initialSongs = saved.songs;
+          initialCurrent = saved.current;
+        }
+      } catch (e) {
+        console.warn('Falling back to default songs:', e);
       }
-      if (saved.newCurrent) c.play(saved.newCurrent);
     }
+
+    for (const s of initialSongs) {
+      if (!s || typeof s.title !== 'string' || typeof s.artist !== 'string' || typeof s.url !== 'string') continue;
+      const id = c.add();
+      if (id < 0) break;
+      songs[id] = {id, title: s.title, artist: s.artist, url: s.url};
+      if (s.id === initialCurrent) initialCurrent = id;
+    }
+
+    if (initialCurrent && songs[initialCurrent]) {
+      c.play(initialCurrent);
+    } else {
+      const list = ordered();
+      if (list.length > 0) c.play(list[0].id);
+    }
+
+    save();
     render();
   } catch (err) {
     toast('Could not load the C WebAssembly engine: ' + err.message);
