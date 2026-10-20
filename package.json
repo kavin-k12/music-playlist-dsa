@@ -1,0 +1,9 @@
+{
+  "name": "linkedbeats-c-wasm",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve frontend -l 3000",
+    "build": "node -e \"console.log('Precompiled C WebAssembly is included in frontend/')\""
+  }
+}
